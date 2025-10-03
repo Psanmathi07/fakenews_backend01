@@ -1,48 +1,45 @@
-name: Generate Model
+name: Generate and Upload Fake News Model
 
 on:
-  workflow_dispatch:  # Run manually from Actions tab
+  workflow_dispatch:   # You trigger manually from GitHub Actions tab
+  push:
+    paths:
+      - "backend/train_model.py"
+      - ".github/workflows/generate-model.yml"
 
 jobs:
-  train:
+  build-model:
     runs-on: ubuntu-latest
 
     steps:
       # 1. Checkout repo
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      # 2. Setup Python
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: '3.9'
 
       # 3. Install dependencies
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install scikit-learn pandas joblib kaggle
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      # 4. Setup Kaggle API
-      - name: Setup Kaggle API
-        run: |
-          mkdir -p ~/.kaggle
-          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
-          chmod 600 ~/.kaggle/kaggle.json
+      # 4. Ensure backend folder exists
+      - name: Create backend folder if missing
+        run: mkdir -p backend
 
-      # 5. Download dataset
-      - name: Download dataset
-        run: |
-          kaggle datasets download -d clmentbisaillon/fake-and-real-news-dataset -p data --unzip
-
-      # 6. Train model
+      # 5. Run training script
       - name: Train model
         run: python backend/train_model.py
 
-      # 7. Upload trained model as artifact
+      # 6. Upload trained artifacts (model + vectorizer)
       - name: Upload trained model
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: fake-news-model
           path: backend/*.joblib
+          retention-days: 7
