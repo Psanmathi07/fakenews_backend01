@@ -1,47 +1,50 @@
-from flask import Flask, request, jsonify
-import joblib
 import os
+import joblib
+from flask import Flask, request, jsonify
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Load model + vectorizer safely
+# ✅ Load model + vectorizer safely
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model.joblib")
 VECTORIZER_PATH = os.path.join(os.path.dirname(__file__), "vectorizer.joblib")
 
 try:
     model = joblib.load(MODEL_PATH)
     vectorizer = joblib.load(VECTORIZER_PATH)
+    print("✅ Model and Vectorizer loaded successfully.")
 except Exception as e:
-    print("⚠️ Error loading model/vectorizer:", e)
-    model = None
-    vectorizer = None
+    print(f"⚠️ Error loading model/vectorizer: {e}")
+    model, vectorizer = None, None
 
-@app.route("/", methods=["GET"])
+
+@app.route("/")
 def home():
-    return jsonify({"message": "✅ Fake News Detection API is running!"})
+    return jsonify({"message": "✅ Backend running on Render!"})
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    if model is None or vectorizer is None:
+    if not model or not vectorizer:
         return jsonify({"error": "Model or vectorizer not loaded"}), 500
 
-    data = request.get_json()
-    if not data or "text" not in data:
-        return jsonify({"error": "Missing 'text' in request"}), 400
+    try:
+        data = request.get_json()
+        text = data.get("text", "")
 
-    text = data["text"]
+        if not text.strip():
+            return jsonify({"error": "No text provided"}), 400
 
-    # Transform & predict
-    X = vectorizer.transform([text])
-    prediction = model.predict(X)[0]
-    confidence = model.predict_proba(X)[0].max() * 100
+        # Transform and predict
+        X = vectorizer.transform([text])
+        prediction = model.predict(X)[0]
+        label = "FAKE NEWS ❌" if prediction == 1 else "REAL NEWS ✅"
 
-    result = "FAKE" if prediction == 0 else "REAL"
-    return jsonify({
-        "prediction": result,
-        "confidence": round(confidence, 2)
-    })
+        return jsonify({"result": label})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # ✅ Render requires dynamic port binding
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=False)
