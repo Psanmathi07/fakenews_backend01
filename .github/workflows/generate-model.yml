@@ -1,14 +1,10 @@
-name: Generate and Upload Fake News Model
+name: Generate Model
 
 on:
-  workflow_dispatch:   # You trigger manually from GitHub Actions tab
-  push:
-    paths:
-      - "backend/train_model.py"
-      - ".github/workflows/generate-model.yml"
+  workflow_dispatch:   # run manually from Actions tab
 
 jobs:
-  build-model:
+  generate:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,30 +12,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Set up Python
+      # 2. Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
-      # 3. Install dependencies
+      # 3. Install dependencies directly (no requirements.txt needed)
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install scikit-learn pandas numpy joblib
 
-      # 4. Ensure backend folder exists
-      - name: Create backend folder if missing
-        run: mkdir -p backend
-
-      # 5. Run training script
+      # 4. Run training script
       - name: Train model
-        run: python backend/train_model.py
+        run: |
+          python backend/train_model.py
 
-      # 6. Upload trained artifacts (model + vectorizer)
-      - name: Upload trained model
+      # 5. Upload trained artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: fake-news-model
-          path: backend/*.joblib
-          retention-days: 7
+          name: trained-model
+          path: |
+            backend/model.joblib
+            backend/vectorizer.joblib
