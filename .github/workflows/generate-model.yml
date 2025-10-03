@@ -1,39 +1,43 @@
-name: Generate Model
+name: Generate and Upload Model
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "backend/train_model.py"
+      - ".github/workflows/generate-model.yml"
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install scikit-learn pandas numpy joblib flask gunicorn kaggle
 
-    - name: Setup Kaggle
-      run: |
-        mkdir -p ~/.kaggle
-        echo "${{ secrets.KAGGLE_JSON }}" > ~/.kaggle/kaggle.json
-        chmod 600 ~/.kaggle/kaggle.json
+      - name: Run training if model not exists
+        run: |
+          if [ ! -f backend/model.joblib ]; then
+            echo "⚠️ Model not found. Training..."
+            python backend/train_model.py
+          else
+            echo "✅ Model already exists, skipping training."
+          fi
 
-    - name: Run training script
-      run: python backend/train_model.py
-
-    - name: Commit and push model
-      run: |
-        git config --global user.name "github-actions"
-        git config --global user.email "github-actions@github.com"
-        git add backend/model.joblib backend/vectorizer.joblib
-        git commit -m "Auto-update trained model"
-        git push
+      - name: Commit and push model
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add backend/model.joblib backend/vectorizer.joblib || true
+          git commit -m "🤖 Update trained model" || echo "No changes to commit"
+          git push
