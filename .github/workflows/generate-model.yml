@@ -7,6 +7,9 @@ jobs:
   train:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write   # ✅ allow workflow to push changes
+
     steps:
       # 1. Checkout repo
       - name: Checkout code
@@ -41,7 +44,7 @@ jobs:
         run: |
           python backend/train_model.py
 
-      # 7. Upload trained model back to repo
+      # 7. Commit and push trained model
       - name: Commit and push model
         run: |
           git config --global user.name "github-actions"
