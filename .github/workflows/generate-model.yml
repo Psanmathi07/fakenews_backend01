@@ -1,0 +1,48 @@
+name: Generate Model
+
+on:
+  workflow_dispatch:  # Run manually from Actions tab
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      # 2. Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install scikit-learn pandas joblib kaggle
+
+      # 4. Setup Kaggle API
+      - name: Setup Kaggle API
+        run: |
+          mkdir -p ~/.kaggle
+          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+
+      # 5. Download dataset
+      - name: Download dataset
+        run: |
+          kaggle datasets download -d clmentbisaillon/fake-and-real-news-dataset -p data --unzip
+
+      # 6. Train model
+      - name: Train model
+        run: python backend/train_model.py
+
+      # 7. Upload trained model as artifact
+      - name: Upload trained model
+        uses: actions/upload-artifact@v3
+        with:
+          name: fake-news-model
+          path: backend/*.joblib
