@@ -24,9 +24,9 @@ jobs:
       # 3. Install dependencies (direct install, no requirements.txt needed)
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install scikit-learn pandas numpy joblib flask gunicorn kaggle
-
+         python -m pip install --upgrade pip
+         pip install -r requirements.txt
+         
       # 4. Setup Kaggle API
       - name: Setup Kaggle
         run: |
